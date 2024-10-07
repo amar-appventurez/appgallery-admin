@@ -15,7 +15,7 @@ export const createApp = async (appData) => {
   });
 };
 
-export const updateApp = async (appData) => {
+export const updateAppDetails = async (appData) => {
   return await axios.patch(`${API_URL}/app`, appData, {
     auth: {
       username,
@@ -24,6 +24,15 @@ export const updateApp = async (appData) => {
   });
 };
 
+
+export const updateAppImages = async (appData) => {
+  return await axios.patch(`${API_URL}/images`, appData, {
+    auth: {
+      username,
+      password,
+    }
+  });
+};
 export const fetchApps = async (page = 1, limit = 10) => {
   return await axios.get(`${API_URL}/applist`, {
     params: { page, limit }, 

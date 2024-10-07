@@ -9,15 +9,18 @@ export default function ViewApps() {
   const [totalPages, setTotalPages] = useState(1);
   const [searchName, setSearchName] = useState('');
   const [searchDate, setSearchDate] = useState('');
+  const [loading, setLoading] =useState(false);
   const router = useRouter();
 
   useEffect(() => {
     const loadApps = async () => {
+      setLoading(true);
       const response = await fetchApps(page, searchName, searchDate);
    
       if (response?.data?.result) {
         setApps(response.data.result.rows);
         setTotalPages(Math.ceil(response.data.result.count / 10));
+        setLoading(false);
       }
     };
     loadApps();
@@ -79,6 +82,7 @@ export default function ViewApps() {
         <thead>
           <tr>
             <th className="px-4 py-2">Name</th>
+            <th className="px-4 py-2">Icon</th>
             <th className="px-4 py-2">Description</th>
             <th className="px-4 py-2">Date Created</th>
             <th className="px-4 py-2">Actions</th>
@@ -89,6 +93,7 @@ export default function ViewApps() {
             apps.map((app) => (
               <tr key={app.id} className="border-b">
                 <td className="border px-4 py-2">{app.name}</td>
+                <td className="border px-4 py-2">{<img src={`https://cityminiapps.kobil.com/images/${app.icon}`} alt="icon image"></img>}</td>
                 <td className="border px-4 py-2">{app.description}</td>
                 <td className="border px-4 py-2">{new Date(app.createdAt).toLocaleDateString()}</td>
                 <td className="border px-4 py-2 flex gap-2">
@@ -127,7 +132,7 @@ export default function ViewApps() {
       <div className="flex justify-between">
         {page > 1 && (
           <button
-            className="bg-gray-300 px-4 py-2"
+            className="bg-blue-300 px-4 py-2 text-white"
             onClick={() => setPage(page - 1)}
           >
             Previous (Page {page - 1})
@@ -135,7 +140,7 @@ export default function ViewApps() {
         )}
         {page < totalPages && (
           <button
-            className="bg-gray-300 px-4 py-2 ml-auto"
+            className="bg-blue-300 px-4 py-2 ml-auto text-white"
             onClick={() => setPage(page + 1)}
           >
             Next (Page {page + 1})

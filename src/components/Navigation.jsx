@@ -6,7 +6,7 @@ const Navigation = ({children}) => {
   return (
     <div className="flex">
       {/* Sidebar */}
-      <div className={`w-64 bg-gray-800 text-white h-screen ${isOpen ? 'block' : 'hidden'} md:block`}>
+      <div className={`w-64 bg-gray-800 text-white h-[auto] ${isOpen ? 'fixed top-0' : 'hidden'} md:block`}>
         <div className="p-4">
           <h2 className="text-2xl font-bold">Mini Gallery Administration </h2>
           <ul>

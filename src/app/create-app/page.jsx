@@ -1,8 +1,9 @@
 "use client";
-import { useState,useEffect } from 'react';
-import { createApp,updateApp } from '@/app/actions';
+import { useState, useEffect } from 'react';
+import { createApp, updateAppDetails, updateAppImages } from '@/app/actions';
 
-export default function CreateUpdateApp({ updateApp = false, initialAppData=null }) {
+export default function CreateUpdateApp({ updateApp = false, initialAppData = null }) {
+
     const [appData, setAppData] = useState({
         name: '',
         developerId: 1,
@@ -12,19 +13,82 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData=null
         icon: null,
         images: [],  // Multiple file uploads for images
         bannerImg: null,
-        status: 1,
+        status: [],
         promote: true,  // Checkbox for Promote
         suggest: true,  // Checkbox for Suggest
         description: '',
         size: '',
         version: '',
-        versionUpdate: ''
+        versionUpdate: '',
+        id:null,
     });
 
     /**On using as an update component */
     useEffect(() => {
         if (updateApp && initialAppData) {
-            setAppData(initialAppData);
+            const {
+                AppDetail: { official_website, version, version_update, size, description, images },
+                banner_img,
+                icon, summary, summary_clr, status, name,
+                AppDeveloper: { id },
+                Segments
+            } = initialAppData
+           
+            // setAppData({
+            //     name,
+            //     developerId: id,
+            //     summary,
+            //     summaryClr: summary_clr,  // Default color
+            //     officialWebsite: official_website,
+            //     icon,
+            //     images,  // Multiple file uploads for images
+            //     bannerImg: banner_img,
+            //     status,
+            //     promote: true,  // Checkbox for Promote
+            //     suggest: true,  // Checkbox for Suggest
+            //     description,
+            //     size,
+            //     version,
+            //     versionUpdate: version_update
+            // });
+
+            const urlToFile = async (url, filename) => {
+                const response = await fetch(`/api/fetchImage?imageUrl=${encodeURIComponent(url)}`);
+                const blob = await response.blob();
+                const fileType = blob.type;
+                return new File([blob], filename, { type: fileType });
+              };
+              
+            const imageOrigin = "https://cityminiapps.kobil.com/images/"
+
+            const convertImages = async () => {
+                // Convert URLs to File objects
+                const iconFile = icon ? await urlToFile(`${imageOrigin}${icon}`, icon) : null;
+                const bannerImgFile = banner_img ? await urlToFile(`${imageOrigin}${banner_img}`, banner_img) : null;
+                const imageFiles = await Promise.all(images.map((img, index) => urlToFile(`${imageOrigin}${img}`, `image-${index}.png`)));
+
+                // Update the appData state with these File objects
+                setAppData({
+                    name,
+                    developerId: id,
+                    summary,
+                    summaryClr: summary_clr,
+                    officialWebsite: official_website,
+                    icon: iconFile,
+                    images: imageFiles,
+                    bannerImg: bannerImgFile,
+                    status: Segments.map((segment)=>{ return segment?.num}),
+                    promote: true,
+                    suggest: true,
+                    description,
+                    size,
+                    version,
+                    versionUpdate: version_update,
+                    id: initialAppData?.id
+                });
+            };
+
+            convertImages();
         }
     }, [updateApp, initialAppData]);
 
@@ -34,7 +98,7 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData=null
 
     const handleDeveloperSearch = async (query) => {
         // Fetch developer options based on search
-        const response = await fetch(`/api/developers?search=${query}`);
+        const response = await fetch(`/api/developers?search=${query}`, {cache: 'force-cache'});
         const data = await response.json();
         setDeveloperOptions(data);
     };
@@ -88,33 +152,74 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData=null
             formData.append('summary', appData.summary);
             formData.append('summaryClr', appData.summaryClr);
             formData.append('officialWebsite', appData.officialWebsite);
-            formData.append('status', appData.status);
+         
             formData.append('promote', appData.promote);
             formData.append('suggest', appData.suggest);
             formData.append('description', appData.description);
             formData.append('size', appData.size);
             formData.append('version', appData.version);
             formData.append('versionUpdate', appData.versionUpdate);
-    
-            if (appData.icon) {
+
+            //send status as multiple keys in the array
+            appData.status.forEach(status => {
+                formData.append('status[]', status); 
+            });
+
+            if (appData.icon && !updateApp) {
                 formData.append('icon', appData.icon);
             }
-    
-            if (appData.bannerImg) {
+
+            if (appData.bannerImg && !updateApp) {
                 formData.append('bannerImg', appData.bannerImg);
             }
-    
+
             // appData.images.forEach((image, index) => {
             //     formData.append(`images[${index}]`, image);
             // });
-            if (appData.images.length > 0) {
+            if (appData.images.length > 0 && !updateApp) {
                 appData.images.forEach((image) => {
-                    formData.append('images', image); 
+                    formData.append('images', image);
                 });
             }
             if (updateApp) {
-                // Call update API
-                await updateApp(formData);
+                // Call update APIs
+                const formDataImages = new FormData();
+                if (appData.icon ) {
+                    formDataImages.append('icon', appData.icon);
+                }
+
+                if (appData.bannerImg) {
+                    formDataImages.append('bannerImg', appData.bannerImg);
+                }
+
+                // appData.images.forEach((image, index) => {
+                //     formData.append(`images[${index}]`, image);
+                // });
+                if (appData.images.length > 0) {
+                    appData.images.forEach((image) => {
+                        formDataImages.append('images', image);
+                    });
+                }
+
+                formDataImages.append('appId',initialAppData?.id)
+                const updateAppObj = {
+                    'name': appData.name,
+                    'developerId': appData.developerId,
+                    'summary': appData.summary,
+                    'summaryClr': appData.summaryClr,
+                    'officialWebsite': appData.officialWebsite,
+                    'status': appData.status,
+                    'promote': appData.promote,
+                    'suggest': appData.suggest,
+                    'description': appData.description,
+                    'size': appData.size,
+                    'version': appData.version,
+                    'versionUpdate': appData.versionUpdate,
+                    'appId': initialAppData?.id            //adding appid explicitly
+                    
+                }
+
+                await Promise.all([updateAppDetails(updateAppObj), updateAppImages(formDataImages)]);
             } else {
                 // Call create API
                 await createApp(formData);
@@ -124,7 +229,7 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData=null
             console.error(err);
         }
     };
-    
+
 
     return (
         <form onSubmit={handleSubmit} className="bg-white p-6 shadow-md rounded-md text-[black]">
@@ -225,7 +330,11 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData=null
             <select
                 className="border p-2 w-full mb-4"
                 value={appData.status}
-                onChange={(e) => setAppData({ ...appData, status: e.target.value })}
+                onChange={(e) => {
+                    const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
+                    setAppData({ ...appData, status: selectedOptions });
+                }}
+                multiple
             >
                 <option value={1}>Banner</option>
                 <option value={2}>Featured</option>
@@ -264,7 +373,7 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData=null
             {isFileModalOpen && (
                 <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
                     <div className="bg-white p-6 rounded-md">
-                        <h2 className="text-xl font-bold mb-4">{ `${(fileType==='icon' && appData.icon) || (fileType==='bannerImg' && appData.bannerImg) ? "Replace" : "Upload" } ${fileType.toUpperCase()}` }</h2>
+                        <h2 className="text-xl font-bold mb-4">{`${(fileType === 'icon' && appData.icon) || (fileType === 'bannerImg' && appData.bannerImg) ? "Replace" : "Upload"} ${fileType.toUpperCase()}`}</h2>
                         <input
                             type="file"
                             onChange={handleFileChange}
@@ -280,11 +389,11 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData=null
                                     appData.images.map((image, index) => (
                                         <div key={index} className="relative">
                                             <div className={"border-[0.15rem] border-solid border-slate-400 p-[0.25rem]"}>
-                                            <img
-                                                src={URL.createObjectURL(image)}
-                                                alt={`uploaded-${index}`}
-                                                className="w-full h-24 object-cover"
-                                            />
+                                                <img
+                                                    src={URL.createObjectURL(image)}
+                                                    alt={`uploaded-${index}`}
+                                                    className="w-full h-24 object-cover"
+                                                />
                                             </div>
                                             <button
                                                 type="button"
@@ -300,11 +409,11 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData=null
                                     (fileType === 'bannerImg') && appData.bannerImg && (
                                         <div className="relative">
                                             <div className={"border-[0.15rem] border-solid border-slate-400 p-[0.25rem]"}>
-                                            <img
-                                                src={URL.createObjectURL(appData[`${fileType}`])}
-                                                alt={`uploaded-${fileType}`}
-                                                className="w-full h-24 object-cover"
-                                            />
+                                                <img
+                                                    src={URL.createObjectURL(appData[`${fileType}`])}
+                                                    alt={`uploaded-${fileType}`}
+                                                    className="w-full h-24 object-cover"
+                                                />
                                             </div>
                                             <button
                                                 type="button"
@@ -321,16 +430,16 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData=null
                                     (fileType === 'icon') && appData.icon && (
                                         <div className="relative">
                                             <div className={"border-[0.15rem] border-solid border-slate-400 p-[0.25rem]"}>
-                                            <img
-                                                src={URL.createObjectURL(appData[`${fileType}`])}
-                                                alt={`uploaded-${fileType}`}
-                                                className="w-full h-24 object-cover"
-                                            />
+                                                <img
+                                                    src={URL.createObjectURL(appData[`${fileType}`])}
+                                                    alt={`uploaded-${fileType}`}
+                                                    className="w-full h-24 object-cover"
+                                                />
                                             </div>
                                             <button
                                                 type="button"
                                                 onClick={() => removeImage()}
-                                                className="absolute top-[-0.5rem] right-[-0.5rem] bg-slate-600 text-white px-[0.35rem] pb-[0.05rem] text-[0.75rem] rounded-full" 
+                                                className="absolute top-[-0.5rem] right-[-0.5rem] bg-slate-600 text-white px-[0.35rem] pb-[0.05rem] text-[0.75rem] rounded-full"
                                             >
                                                 x
                                             </button>
