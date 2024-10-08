@@ -33,9 +33,16 @@ export const updateAppImages = async (appData) => {
     }
   });
 };
-export const fetchApps = async (page = 1, limit = 10, searchWithName, searchDate) => {
+export const fetchApps = async (page = 1, limit = 10, searchWithName, searchDate=null, promoted=null, suggested=null, section=null) => {
   return await axios.get(`${API_URL}/applist`, {
-    params: { page, limit,  ...(searchWithName ? { search: searchWithName } : {}) },
+    params: { 
+      page, 
+      limit,  
+      ...(searchWithName ? { search: searchWithName } : {}),
+      ...(promoted ? { promote: promoted } : {}) ,
+      ...(suggested ? { suggest: suggested } : {}),
+      ...(section ? { status: section } : {}),
+    },
     auth: {
       username,
       password,
@@ -90,9 +97,11 @@ export const createDeveloper = async (appData) => {
   });
 };
 
-export const fetchDevelopers = async (page = 1, limit = 10) => {
+export const fetchDevelopers = async (page = 1, limit = 10, searchWithName) => {
   return await axios.get(`${API_URL}/developer`, {
-    params: { page, limit },
+    params: { page, limit,
+      ...(searchWithName ? { search: searchWithName } : {}),
+     },
     auth: {
       username,
       password,

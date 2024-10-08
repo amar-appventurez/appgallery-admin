@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Importing Poppins Font */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -14,18 +17,16 @@
   }
 }
 
-html,body {
+html, body {
   height: 100%;
   margin: 0;
+  font-family: 'Poppins', sans-serif; /* Use Poppins as the default font */
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  /* display: flex; */
-  /* flex-direction: column; */
-  /* min-height: 100vh; */
+  font-family: 'Poppins', sans-serif; /* Cleaner font setting */
 }
 
 @layer utilities {
