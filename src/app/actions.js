@@ -33,9 +33,9 @@ export const updateAppImages = async (appData) => {
     }
   });
 };
-export const fetchApps = async (page = 1, limit = 10) => {
+export const fetchApps = async (page = 1, limit = 10, searchWithName, searchDate) => {
   return await axios.get(`${API_URL}/applist`, {
-    params: { page, limit }, 
+    params: { page, limit,  ...(searchWithName ? { search: searchWithName } : {}) },
     auth: {
       username,
       password,
@@ -75,5 +75,47 @@ export const deleteApp = async (appId) => {
 export const uploadImage = async (formData) => {
   return await axios.patch(`${API_URL}/images`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
+  });
+};
+
+
+/** Developer Actions */
+
+export const createDeveloper = async (appData) => {
+  return await axios.post(`${API_URL}/developer`, appData, {
+    auth: {
+      username,
+      password,
+    }
+  });
+};
+
+export const fetchDevelopers = async (page = 1, limit = 10) => {
+  return await axios.get(`${API_URL}/developer`, {
+    params: { page, limit },
+    auth: {
+      username,
+      password,
+    }
+  });
+};
+
+export const fetchDeveloper = async (developerId) => {
+  return await axios.get(`${API_URL}/developer`, {
+    params: { developerId },
+    auth: {
+      username,
+      password,
+    },
+  });
+};
+
+export const updateDeveloper = async (developerDetails) => {
+  return await axios.patch(`${API_URL}/developer`, developerDetails, {
+    params: { page, limit },
+    auth: {
+      username,
+      password,
+    }
   });
 };

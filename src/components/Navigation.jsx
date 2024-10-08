@@ -1,19 +1,27 @@
 "use client"
-import React,{ useState }  from 'react'
+import React, { useState } from 'react'
 
-const Navigation = ({children}) => {
-    const [isOpen,setIsOpen] = useState();
+const Navigation = ({ children }) => {
+  const [isOpen, setIsOpen] = useState();
   return (
-    <div className="flex">
+    <div className="flex h-[100%]">
       {/* Sidebar */}
       <div className={`w-64 bg-gray-800 text-white h-[auto] ${isOpen ? 'fixed top-0' : 'hidden'} md:block`}>
         <div className="p-4">
           <h2 className="text-2xl font-bold">Mini Gallery Administration </h2>
           <ul>
+
+            <br></br>
+            <br></br>
             <li className="mt-4"><a href="/create-app">Create App</a></li>
-            <li className="mt-4"><a href="/update-app">Update App</a></li>
+            {/* <li className="mt-4"><a href="/update-app">Update App</a></li> */}
             <li className="mt-4"><a href="/view-apps">View Apps</a></li>
-            <li className="mt-4"><a href="/upload-image">Upload Image</a></li>
+            {/* <li className="mt-4"><a href="/upload-image">Upload Image</a></li> */}
+            <br></br>
+            <br></br>
+            <li className="mt-4"><a href="/create-developer">Create Developer</a></li>
+            {/* <li className="mt-4"><a href="/update-app">Update App</a></li> */}
+            <li className="mt-4"><a href="/view-developers">View Developer</a></li>
           </ul>
         </div>
       </div>

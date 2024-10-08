@@ -9,14 +9,15 @@ export default function ViewApps() {
   const [totalPages, setTotalPages] = useState(1);
   const [searchName, setSearchName] = useState('');
   const [searchDate, setSearchDate] = useState('');
-  const [loading, setLoading] =useState(false);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
+
     const loadApps = async () => {
       setLoading(true);
-      const response = await fetchApps(page, searchName, searchDate);
-   
+      const response = await fetchApps(page, 10, searchName, searchDate);
+
       if (response?.data?.result) {
         setApps(response.data.result.rows);
         setTotalPages(Math.ceil(response.data.result.count / 10));
@@ -40,9 +41,9 @@ export default function ViewApps() {
 
   const handleRemove = async (appId) => {
 
-    const response = await deleteApp(appId); 
+    const response = await deleteApp(appId);
     if (response.success) {
-      setApps(apps.filter(app => app.id !== appId)); 
+      setApps(apps.filter(app => app.id !== appId));
     } else {
       console.error('Failed to delete app');
     }
@@ -92,11 +93,11 @@ export default function ViewApps() {
           {apps && apps.length > 0 ? (
             apps.map((app) => (
               <tr key={app.id} className="border-b">
-                <td className="border px-4 py-2">{app.name}</td>
-                <td className="border px-4 py-2">{<img src={`https://cityminiapps.kobil.com/images/${app.icon}`} alt="icon image"></img>}</td>
-                <td className="border px-4 py-2">{app.description}</td>
-                <td className="border px-4 py-2">{new Date(app.createdAt).toLocaleDateString()}</td>
-                <td className="border px-4 py-2 flex gap-2">
+                <td className="border px-4 py-4">{app.name}</td>
+                <td className="border px-4 py-4"><div className={`max-w-[6rem] flex flex-row justify-between`}><img src={`https://cityminiapps.kobil.com/images/${app.icon}`} alt="icon image"></img></div></td>
+                <td className="border px-4 py-4">{app.description}</td>
+                <td className="border px-4 py-4">{new Date(app.createdAt).toLocaleDateString()}</td>
+                <td className="px-4 py-4 flex gap-2">
                   <button
                     className="bg-blue-500 text-white px-4 py-2 rounded-lg"
                     onClick={() => handleView(app.id)}
@@ -119,11 +120,30 @@ export default function ViewApps() {
               </tr>
             ))
           ) : (
-            <tr>
-              <td colSpan="4" className="text-center py-4">
-                No apps found.
-              </td>
-            </tr>
+            
+            Array.from({ length: 12 }).map((_, index) => {
+              return (
+                <tr className="border-b">
+                  <td colSpan="1" className="border-b px-4 py-4 text-center py-4 animate-pulse bg-slate-500">
+                    {<>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</>}
+                  </td>
+                  <td colSpan="1" className="border-b px-4 py-4 text-center py-4 animate-pulse bg-slate-500">
+                    {<>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</>}
+                  </td>
+                  <td colSpan="1" className="border-b px-4 py-4 text-center py-4 animate-pulse bg-slate-500">
+                    {<>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</>}
+                  </td>
+                  <td colSpan="1" className="border-b px-4 py-4 text-center py-4 animate-pulse bg-slate-500">
+                    {<>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</>}
+                  </td>
+                  <td colSpan="1" className="border-b px-4 py-4 text-center py-4 animate-pulse bg-slate-500">
+                    {<>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</>}
+                  </td>
+                </tr>
+              )
+            })
+
+
           )}
         </tbody>
       </table>
