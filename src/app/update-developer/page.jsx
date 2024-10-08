@@ -1,6 +1,6 @@
 import React from 'react'
 import { fetchDeveloper } from '../actions';
-import CreateUpdateDeveloper from '../create-developers/page';
+import CreateUpdateDeveloper from '../create-developer/page';
 
 const page = async ({ searchParams }) => {
     const { developerId } = searchParams;

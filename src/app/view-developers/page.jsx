@@ -121,7 +121,7 @@ export default function ViewDeveloper() {
           ) : (
             Array.from({ length: 12 }).map((_, index) => {
                 return (
-                  <tr className="border-b">
+                  <tr className="border-b" key={index}>
                     <td colSpan="1" className="border-b px-4 py-4 text-center py-4 animate-pulse bg-slate-500">
                       {<>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</>}
                     </td>

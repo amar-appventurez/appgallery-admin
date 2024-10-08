@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 const Navigation = ({ children }) => {
   const [isOpen, setIsOpen] = useState();
   return (
-    <div className="flex h-[100%]">
+    <div className="flex min-h-screen">
       {/* Sidebar */}
       <div className={`w-64 bg-gray-800 text-white h-[auto] ${isOpen ? 'fixed top-0' : 'hidden'} md:block`}>
         <div className="p-4">
