@@ -1,12 +1,13 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { createApp, updateAppDetails, updateAppImages } from '@/app/actions';
+import { createApp, fetchDevelopers, updateAppDetails, updateAppImages } from '@/app/actions';
+import debounce from 'lodash.debounce';
 
 export default function CreateUpdateApp({ updateApp = false, initialAppData = null }) {
 
     const [appData, setAppData] = useState({
         name: '',
-        developerId: 1,
+        developerId: null,
         summary: '',
         summaryClr: '#000000',  // Default color
         officialWebsite: '',
@@ -20,7 +21,7 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData = nu
         size: '',
         version: '',
         versionUpdate: '',
-        id:null,
+        id: null,
     });
 
     /**On using as an update component */
@@ -33,7 +34,7 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData = nu
                 AppDeveloper: { id },
                 Segments
             } = initialAppData
-           
+
             // setAppData({
             //     name,
             //     developerId: id,
@@ -57,8 +58,8 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData = nu
                 const blob = await response.blob();
                 const fileType = blob.type;
                 return new File([blob], filename, { type: fileType });
-              };
-              
+            };
+
             const imageOrigin = "https://cityminiapps.kobil.com/images/"
 
             const convertImages = async () => {
@@ -77,7 +78,7 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData = nu
                     icon: iconFile,
                     images: imageFiles,
                     bannerImg: bannerImgFile,
-                    status: Segments.map((segment)=>{ return segment?.num}),
+                    status: Segments.map((segment) => { return {num: segment?.num, promote: segment?.promote} }),
                     promote: true,
                     suggest: true,
                     description,
@@ -86,22 +87,51 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData = nu
                     versionUpdate: version_update,
                     id: initialAppData?.id
                 });
+                setIsDropdownOpen(false);
             };
 
             convertImages();
         }
     }, [updateApp, initialAppData]);
 
-    const [developerOptions, setDeveloperOptions] = useState([]);
+    const [developerOptions, setDeveloperOptions] = useState([]); // Dropdown options
+    const [developerSearchTerm, setDeveloperSearchTerm] = useState(""); // Search term
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isFileModalOpen, setFileModalOpen] = useState(false);
     const [fileType, setFileType] = useState('');
 
-    const handleDeveloperSearch = async (query) => {
-        // Fetch developer options based on search
-        const response = await fetch(`/api/developers?search=${query}`, {cache: 'force-cache'});
-        const data = await response.json();
-        setDeveloperOptions(data);
+    /** Debounced developer search API call */
+    const fetchDeveloperOptions = debounce(async (searchQuery) => {
+        // if (!searchQuery) {
+        //     setDeveloperOptions([]);
+        //     return;
+        // }
+
+        try {
+            const response = await fetchDevelopers(1, 10, searchQuery);
+            setDeveloperOptions(response?.data?.result?.rows ?? []);
+            setIsDropdownOpen(true); // Open dropdown after fetching data
+        } catch (err) {
+            console.error("Failed to fetch developers", err);
+        }
+    }, 300);
+
+
+    useEffect(() => {
+        fetchDeveloperOptions(developerSearchTerm);
+    }, [developerSearchTerm]);
+
+
+    const handleSelectDeveloper = (developerId) => {
+        setAppData({ ...appData, developerId });
+        setIsDropdownOpen(false); // close dropdown on selection
     };
+
+    const handleSearchChange = (e) => {
+        setAppData({ ...appData, developerId: null });
+        setDeveloperSearchTerm(e.target.value);
+    };
+
 
     const handleFileChange = (e) => {
         const files = Array.from(e.target.files);
@@ -152,7 +182,7 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData = nu
             formData.append('summary', appData.summary);
             formData.append('summaryClr', appData.summaryClr);
             formData.append('officialWebsite', appData.officialWebsite);
-         
+
             formData.append('promote', appData.promote);
             formData.append('suggest', appData.suggest);
             formData.append('description', appData.description);
@@ -161,8 +191,9 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData = nu
             formData.append('versionUpdate', appData.versionUpdate);
 
             //send status as multiple keys in the array
+            console.log("Status in handleSubmit", appData?.status)
             appData.status.forEach(status => {
-                formData.append('status[]', status); 
+                formData.append('status[]', JSON.stringify(status));
             });
 
             if (appData.icon && !updateApp) {
@@ -184,7 +215,7 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData = nu
             if (updateApp) {
                 // Call update APIs
                 const formDataImages = new FormData();
-                if (appData.icon ) {
+                if (appData.icon) {
                     formDataImages.append('icon', appData.icon);
                 }
 
@@ -201,7 +232,7 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData = nu
                     });
                 }
 
-                formDataImages.append('appId',initialAppData?.id)
+                formDataImages.append('appId', initialAppData?.id)
                 const updateAppObj = {
                     'name': appData.name,
                     'developerId': appData.developerId,
@@ -216,7 +247,7 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData = nu
                     'version': appData.version,
                     'versionUpdate': appData.versionUpdate,
                     'appId': initialAppData?.id            //adding appid explicitly
-                    
+
                 }
 
                 await Promise.all([updateAppDetails(updateAppObj), updateAppImages(formDataImages)]);
@@ -228,6 +259,43 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData = nu
         } catch (err) {
             console.error(err);
         }
+    };
+
+    const sectionArray = [
+        { id: 1, sectionName: "Banner", promoteAvailable: false },
+        { id: 2, sectionName: "Featured", promoteAvailable: true },
+        { id: 3, sectionName: "Helpful1", promoteAvailable: true },
+        { id: 4, sectionName: "Helpful2", promoteAvailable: false },
+    ];
+
+
+
+    const handleSectionSelect = (id, promoteAvailable) => {
+        const isSelected = appData.status.some((section) => section.num === id);
+
+        if (isSelected) {
+            setAppData({
+                ...appData,
+                status: appData.status.filter((section) => section.num !== id),
+            });
+        } else {
+            setAppData({
+                ...appData,
+                status: [
+                    ...appData.status,
+                    { num: id, promote: promoteAvailable ? false : true }, // Default promote
+                ],
+            });
+        }
+    };
+
+    const handlePromoteChange = (id) => {
+        setAppData({
+            ...appData,
+            status: appData.status.map((section) =>
+                section.num === id ? { ...section, promote: !section.promote } : section
+            ),
+        });
     };
 
 
@@ -271,24 +339,35 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData = nu
                 onChange={(e) => setAppData({ ...appData, officialWebsite: e.target.value })}
             />
 
-            {/* Developer ID Dropdown */}
+
+            {/* Developer ID Dropdown with Search */}
             <label className="block mb-2">Developer</label>
-            <input
-                className="border p-2 w-full mb-4"
-                type="text"
-                placeholder="Search Developer"
-                onChange={(e) => handleDeveloperSearch(e.target.value)}
-            />
-            <select
-                className="border p-2 w-full mb-4"
-                value={appData.developerId}
-                onChange={(e) => setAppData({ ...appData, developerId: e.target.value })}
-            >
-                <option value="">Select Developer</option>
-                {developerOptions.map((dev) => (
-                    <option key={dev.id} value={dev.id}>{dev.name}</option>
-                ))}
-            </select>
+
+            <div className="mb-4 relative">
+                <input
+                    className="border p-2 w-full"
+                    type="text"
+                    placeholder="Search Developer"
+                    value={!appData?.developerId ? developerSearchTerm : developerOptions.find((developer) => { return developer.id === appData?.developerId })['name']}
+                    onChange={handleSearchChange}
+                />
+
+                {isDropdownOpen && developerOptions.length > 0 && (
+                    <ul className="absolute z-10 w-full bg-white border mt-2 max-h-40 overflow-y-auto shadow-md">
+                        {developerOptions.map((developer) => (
+                            <li
+                                key={developer.id}
+                                className="p-2 hover:bg-gray-200 cursor-pointer"
+                                onClick={() => handleSelectDeveloper(developer.id)}
+                            >
+                                {developer.name}
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+
+
 
             {/* App Description */}
             <textarea
@@ -326,8 +405,47 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData = nu
             />
 
             {/* Status */}
+
+
+
             <label className="block mb-2">Appear in Section</label>
-            <select
+
+            <div className="grid grid-cols-4 gap-4 mb-4">
+                {sectionArray.map((section) => {
+                    const isSelected = appData?.status?.some((s) => s.num === section.id);
+                    return (
+                        <div
+                            key={section.id}
+                            className={`border p-4 cursor-pointer rounded-xl font-semibold ${isSelected ? " text-white bg-slate-500" : "bg-slate-200"
+                                }`}
+                            onClick={() => handleSectionSelect(section.id, section.promoteAvailable)}
+                        >
+                            <h3>{section.sectionName}</h3>
+
+                            {/* Show checkbox only if the card is selected and promoteAvailable is true */}
+                            {isSelected && section.promoteAvailable && (
+                                <label className="flex items-center mt-2 font-normal">
+                                    <input
+                                        type="checkbox"
+                                        checked={
+                                            appData?.status.find((s) => s.num === section.id)?.promote
+                                        }
+                                        onChange={(e) => {
+                                            e.stopPropagation(); // Prevent card deselection on checkbox click
+                                            handlePromoteChange(section.id);
+                                        }}
+                                    />
+                                    <span className="ml-2">Promote</span>
+                                </label>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+
+
+
+            {/* <select
                 className="border p-2 w-full mb-4"
                 value={appData.status}
                 onChange={(e) => {
@@ -340,7 +458,7 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData = nu
                 <option value={2}>Featured</option>
                 <option value={3}>Helpful1</option>
                 <option value={4}>Helpful2</option>
-            </select>
+            </select> */}
 
             {/* Promote and Suggest Checkboxes */}
             <div className="mb-4">
@@ -358,7 +476,7 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData = nu
                         checked={appData.suggest}
                         onChange={(e) => setAppData({ ...appData, suggest: e.target.checked })}
                     />
-                    {" "}Suggest
+                    {" "}Apper as a suggested app ?
                 </label>
             </div>
 
