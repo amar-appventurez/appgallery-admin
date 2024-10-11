@@ -101,9 +101,6 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData = nu
     const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
     const [fileType, setFileType] = useState('');
 
-
-    console.log("Is confirmation box", isConfirmationModalOpen)
-
     /** Debounced developer search API call */
     const fetchDeveloperOptions = debounce(async (searchQuery) => {
         // if (!searchQuery) {
@@ -263,7 +260,6 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData = nu
                 //open confirmation box
                 setIsConfirmationModalOpen(true);
                 //reset the state
-
             }
 
         } catch (err) {
@@ -279,35 +275,38 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData = nu
         { id: 4, sectionName: "Helpful2", promoteAvailable: false },
     ];
 
-
-
     const handleSectionSelect = (id, promoteAvailable) => {
+        
         const isSelected = appData.status.some((section) => section.num === id);
 
         if (isSelected) {
+            console.log("Deselecting section", id);
             setAppData({
                 ...appData,
                 status: appData.status.filter((section) => section.num !== id),
             });
         } else {
+            console.log("Selecting section", id);
             setAppData({
                 ...appData,
                 status: [
                     ...appData.status,
-                    { num: id, promote: promoteAvailable ? false : true }, // Default promote
+                    { num: id, promote: promoteAvailable ? false : (id === 4 ? false : true) }, // Default promote
                 ],
             });
         }
     };
 
     const handlePromoteChange = (id) => {
-        setAppData({
-            ...appData,
-            status: appData.status.map((section) =>
+        setAppData((prevData) => ({
+            ...prevData,
+            status: prevData.status.map((section) =>
                 section.num === id ? { ...section, promote: !section.promote } : section
             ),
-        });
+        }));
     };
+
+
 
 
     return (
@@ -441,36 +440,57 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData = nu
             {/* Status */}
             <label className="block mb-4">
                 <span className="text-sm font-medium text-gray-700 mb-2">Appear in Section</span>
+            </label>
                 <div className="grid grid-cols-4 gap-4">
-                    {sectionArray.map((section) => {
-                        const isSelected = appData?.status?.some((s) => s.num === section.id);
+                    {sectionArray.map((sectionObj) => {
+                        const isSelected = appData?.status?.some((s) => s.num === sectionObj.id);
                         return (
                             <div
-                                key={section.id}
-                                className={`border p-4 cursor-pointer rounded-lg font-semibold text-sm ${isSelected ? "bg-indigo-500 text-white" : "bg-gray-100 text-gray-700"}`}
-                                onClick={() => handleSectionSelect(section.id, section.promoteAvailable)}
+                                key={sectionObj.id}
+                                className={`border p-4 rounded-lg font-semibold text-sm`}
+                                onClick={(e) => {
+                                    // Check if the click is not from a button or checkbox
+                                    if (e.target.tagName !== 'BUTTON' && e.target.type !== 'checkbox') {
+                                       
+                                        handleSectionSelect(sectionObj.id, sectionObj.promoteAvailable); // Only call if clicking directly on the div
+                                    }
+                                }}
                             >
-                                <h3>{section.sectionName}</h3>
-                                {section.promoteAvailable && isSelected && (
-                                    <label className="flex items-center mt-2">
-                                        <input
-                                            type="checkbox"
-                                            checked={
-                                                appData?.status.find((s) => s.num === section.id)?.promote
-                                            }
-                                            onChange={(e) => {
-                                                e.stopPropagation(); // Prevent card deselection on checkbox click
-                                                handlePromoteChange(section.id);
-                                            }}
-                                        />
-                                        <span className="ml-2 text-sm">Promote</span>
-                                    </label>
+                                <h3>{sectionObj.sectionName}</h3>
+
+                                {/* Button to select the section */}
+                                <button
+                                    type="button" 
+                                    className={`bg-blue-500 text-white rounded w-full clickable ${isSelected ? "bg-green-500" : "bg-red-500"}`}
+                                    onClick={(e) => {
+                                        e.stopPropagation(); // Prevent event bubbling
+                                        handleSectionSelect(sectionObj.id, sectionObj.promoteAvailable); // Handles section selection
+                                    }}
+                                >
+                                    {isSelected ? "Present" : "Absent"}
+                                </button>
+
+                                {/* Only show promote checkbox when the section is selected and promote is available */}
+                                {sectionObj.promoteAvailable && isSelected && (
+                                    <div className="mt-2 flex items-center">
+                                        <label className="flex items-center">
+                                            <input
+                                                type="checkbox"
+                                                checked={appData?.status.find((s) => s.num === sectionObj.id)?.promote}
+                                                onChange={(e) => {
+                                                    e.stopPropagation(); // Prevent card selection toggle on checkbox change
+                                                    handlePromoteChange(sectionObj.id); // Handles promote toggle
+                                                }} // Handles promote toggle
+                                            />
+                                            <span className="ml-2 text-sm">Promote</span>
+                                        </label>
+                                    </div>
                                 )}
                             </div>
                         );
                     })}
                 </div>
-            </label>
+
 
             {/* Promote and Suggest Checkboxes */}
             <div className="mb-6 flex items-center">
@@ -595,7 +615,6 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData = nu
                     </div>
                 </div>
             )}
-
             {
                 isConfirmationModalOpen && (
                     <div className="fixed inset-0 text-white bg-opacity-50 flex items-center justify-center">
