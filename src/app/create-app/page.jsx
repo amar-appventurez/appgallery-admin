@@ -451,7 +451,7 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData = nu
                                 onClick={() => handleSectionSelect(section.id, section.promoteAvailable)}
                             >
                                 <h3>{section.sectionName}</h3>
-                                {isSelected && section.promoteAvailable && (
+                                {section.promoteAvailable && isSelected && (
                                     <label className="flex items-center mt-2">
                                         <input
                                             type="checkbox"
@@ -474,15 +474,6 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData = nu
 
             {/* Promote and Suggest Checkboxes */}
             <div className="mb-6 flex items-center">
-                <label className="inline-flex items-center mr-6">
-                    <input
-                        type="checkbox"
-                        checked={appData.promote}
-                        onChange={(e) => setAppData({ ...appData, promote: e.target.checked })}
-                        className="rounded focus:ring-2 focus:ring-indigo-500"
-                    />
-                    <span className="ml-2 text-sm">Promote</span>
-                </label>
                 <label className="inline-flex items-center">
                     <input
                         type="checkbox"

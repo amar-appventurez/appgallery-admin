@@ -11,9 +11,10 @@ export default function ViewApps() {
   const [searchDate, setSearchDate] = useState('');
   const [promoted, setPromoted] = useState('');
   const [suggested, setSuggested] = useState('');
-  const [section, setSection] = useState('');
+  const [section, setSection] = useState(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const [disablePromote,setDisablePromote]= useState(true);
 
   useEffect(() => {
     const loadApps = async () => {
@@ -50,12 +51,39 @@ export default function ViewApps() {
     }
   };
 
+ 
+
+useEffect(()=>{
+
+
+  //this is static array should be fetched server side from backend api later if more sections get added.
+  const sectionArray = [
+    { id: 1, sectionName: "Banner", promoteAvailable: false },
+    { id: 2, sectionName: "Featured", promoteAvailable: true },
+    { id: 3, sectionName: "Helpful1", promoteAvailable: true },
+    { id: 4, sectionName: "Helpful2", promoteAvailable: false },
+];
+  
+  setDisablePromote(!sectionArray.find((sectionObj)=>( sectionObj.id == section))?.['promoteAvailable'])
+
+},[section])
+
   return (
     <div className="text-black">
       <h1 className="text-2xl font-bold mb-4">View Apps</h1>
 
       {/* Search Filters */}
-      <div className="mb-4">
+      <div className="mb-4 border py-2 px-2 shadow rounded-xl">
+
+      <div
+          className="bg-[#52617b] text-white px-4 py-2 text-center rounded-xl mb-2"
+          // onClick={handleSearch}
+        >
+          Filters
+        </div>
+
+
+        {/** Search by name */}
         <input
           type="text"
           placeholder="Search by Name"
@@ -63,24 +91,15 @@ export default function ViewApps() {
           value={searchName}
           onChange={(e) => setSearchName(e.target.value)}
         />
-        <input
+          {/**Search by date */}
+        {/* <input
           type="date"
           placeholder="Search by Date Created"
           className="border px-4 py-2 mr-4"
           value={searchDate}
           onChange={(e) => setSearchDate(e.target.value)}
-        />
-
-        {/* Promoted Filter */}
-        <select
-          className="border px-4 py-2 mr-4"
-          value={promoted}
-          onChange={(e) => setPromoted(e.target.value)}
-        >
-          <option value="">Promoted</option>
-          <option value="true">Yes</option>
-          <option value="false">No</option>
-        </select>
+        /> */}
+       
 
         {/* Suggested Filter */}
         <select
@@ -106,12 +125,19 @@ export default function ViewApps() {
           <option value="4">Helpful2</option>
         </select>
 
-        <button
-          className="bg-blue-500 text-white px-4 py-2"
-          onClick={handleSearch}
-        >
-          Search
-        </button>
+           {/* Promoted Filter */}
+           { !disablePromote && (
+            <select
+            className={`border px-4 py-2 mr-4`}
+            value={promoted}
+            onChange={(e) => setPromoted(e.target.value)}
+          >
+            <option value="">Promoted</option>
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+          </select>
+        )}
+
       </div>
 
       {/* Apps as Tabs */}
@@ -123,7 +149,7 @@ export default function ViewApps() {
                 <div className="flex-grow-[1] text-lg font-bold text-center sm:text-left">
                   {app.name}
                 </div>
-                <div className="flex-grow-[0.8] flex justify-around items-center gap-10">
+                <div className="flex-grow-[0.8] flex justify-end items-center gap-10">
                   <div className="lg:w-8 lg:h-8 flex-shrink-0">
                     <img
                       src={`https://cityminiapps.kobil.com/images/${app.icon}`}
