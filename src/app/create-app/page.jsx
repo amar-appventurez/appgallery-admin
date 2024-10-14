@@ -22,6 +22,9 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData = nu
         versionUpdate: '',
         id: null,
     });
+    
+    // form validation errors
+    const [errors,setErrors]= useState({});
 
     const [posting, setPosting] = useState(false);
 
@@ -175,98 +178,109 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData = nu
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setErrors({}); // Reset previous errors
+    
+        // Validation logic
+        const requiredFields = [
+            'name',
+            'developerId',
+            'summary',
+            'officialWebsite',
+            'description',
+            'size',
+            'version',
+            'versionUpdate',
+        ];
+    
+        const errors = {};
+        requiredFields.forEach(field => {
+            const value = appData[field];
+            if (value === '' || (field === 'developerId' && value === null)) {
+                errors[field] = `${field.charAt(0).toUpperCase() + field.slice(1)} is required.`;
+            }
+        });
+    
+        if (Object.keys(errors).length > 0) {
+            setErrors(errors);
+            return;
+        }
+    
+        const formData = new FormData();
+        const updateAppData = {
+            name: appData.name,
+            developerId: appData.developerId,
+            summary: appData.summary,
+            summaryClr: appData.summaryClr,
+            officialWebsite: appData.officialWebsite,
+            suggest: appData.suggest,
+            description: appData.description,
+            size: appData.size,
+            version: appData.version,
+            versionUpdate: appData.versionUpdate,
+        };
+    
+        // Append common fields to FormData
+        Object.entries(updateAppData).forEach(([key, value]) => {
+            formData.append(key, value);
+        });
+    
+        // Append status as multiple keys in the array
+        appData.status.forEach(status => {
+            formData.append('status[]', JSON.stringify(status));
+        });
+    
+        // Handle file uploads based on the updateApp flag
+        if (!updateApp) {
+            if (appData.icon) formData.append('icon', appData.icon);
+            if (appData.bannerImg) formData.append('bannerImg', appData.bannerImg);
+            if (appData.images.length > 0) {
+                appData.images.forEach(image => formData.append('images', image));
+            }
+        } else {
+            // For updating, create a separate FormData for images
+            const formDataImages = new FormData();
+            if (appData.icon) formDataImages.append('icon', appData.icon);
+            if (appData.bannerImg) formDataImages.append('bannerImg', appData.bannerImg);
+            if (appData.images.length > 0) {
+                appData.images.forEach(image => formDataImages.append('images', image));
+            }
+            formDataImages.append('appId', initialAppData?.id);
+    
+            // Prepare the update object
+            const updateAppObj = {
+                ...updateAppData,
+                status: appData.status,
+                promote: appData.promote,
+                appId: initialAppData?.id,
+            };
+    
+            try {
+                setPosting(true);
+                await Promise.all([
+                    updateAppDetails(updateAppObj),
+                    updateAppImages(formDataImages),
+                ]);
+                setIsConfirmationModalOpen(true);
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setPosting(false);
+            }
+            return; // Exit early for the update case
+        }
+    
+        // For creating a new app
         try {
-            const formData = new FormData();
-
-            formData.append('name', appData.name);
-            formData.append('developerId', appData.developerId);
-            formData.append('summary', appData.summary);
-            formData.append('summaryClr', appData.summaryClr);
-            formData.append('officialWebsite', appData.officialWebsite);
-
-            formData.append('suggest', appData.suggest);
-            formData.append('description', appData.description);
-            formData.append('size', appData.size);
-            formData.append('version', appData.version);
-            formData.append('versionUpdate', appData.versionUpdate);
-
-            //send status as multiple keys in the array
-            appData.status.forEach(status => {
-                formData.append('status[]', JSON.stringify(status));
-            });
-
-            if (appData.icon && !updateApp) {
-                formData.append('icon', appData.icon);
-            }
-
-            if (appData.bannerImg && !updateApp) {
-                formData.append('bannerImg', appData.bannerImg);
-            }
-
-            // appData.images.forEach((image, index) => {
-            //     formData.append(`images[${index}]`, image);
-            // });
-            if (appData.images.length > 0 && !updateApp) {
-                appData.images.forEach((image) => {
-                    formData.append('images', image);
-                });
-            }
-            if (updateApp) {
-                // Call update APIs
-                const formDataImages = new FormData();
-                if (appData.icon) {
-                    formDataImages.append('icon', appData.icon);
-                }
-
-                if (appData.bannerImg) {
-                    formDataImages.append('bannerImg', appData.bannerImg);
-                }
-
-                // appData.images.forEach((image, index) => {
-                //     formData.append(`images[${index}]`, image);
-                // });
-                if (appData.images.length > 0) {
-                    appData.images.forEach((image) => {
-                        formDataImages.append('images', image);
-                    });
-                }
-
-                formDataImages.append('appId', initialAppData?.id)
-                const updateAppObj = {
-                    'name': appData.name,
-                    'developerId': appData.developerId,
-                    'summary': appData.summary,
-                    'summaryClr': appData.summaryClr,
-                    'officialWebsite': appData.officialWebsite,
-                    'status': appData.status,
-                    'promote': appData.promote,
-                    'suggest': appData.suggest,
-                    'description': appData.description,
-                    'size': appData.size,
-                    'version': appData.version,
-                    'versionUpdate': appData.versionUpdate,
-                    'appId': initialAppData?.id            //adding appid explicitly
-
-                }
-                setPosting(true);
-                await Promise.all([updateAppDetails(updateAppObj), updateAppImages(formDataImages)]);
-                setPosting(false);
-                setIsConfirmationModalOpen(true);
-            } else {
-                // Call create API
-                setPosting(true);
-                await createApp(formData);
-                setPosting(false);
-                //open confirmation box
-                setIsConfirmationModalOpen(true);
-                //reset the state
-            }
-
+            setPosting(true);
+            await createApp(formData);
+            setIsConfirmationModalOpen(true);
         } catch (err) {
-            setPosting(false);
             console.error(err);
+        } finally {
+            setPosting(false);
         }
     };
+    
 
     const sectionArray = [
         { id: 1, sectionName: "Banner", promoteAvailable: false },
@@ -312,325 +326,313 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData = nu
     return (
 
         <form onSubmit={handleSubmit} className="bg-white p-6 shadow-md rounded-lg text-gray-700">
-            <h1 className="text-3xl font-bold text-gray-900 mb-6">{updateApp ? 'Update App' : 'Create App'}</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-6">{updateApp ? 'Update App' : 'Create App'}</h1>
 
-            <div className="grid grid-cols-2 gap-6 mb-6">
-                {/* App Name */}
-                <label className="block flex flex-col">
-                    <span className="text-sm font-medium text-gray-700 mb-2">Name</span>
+        <div className="grid grid-cols-2 gap-6 mb-6">
+            {/* App Name */}
+            <label className="block flex flex-col">
+                <span className="text-sm font-medium text-gray-700 mb-2">Name</span>
+                <input
+                    className={`border ${errors.name ? 'border-red-500' : 'border-gray-300'} rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                    type="text"
+                    placeholder="App Name"
+                    value={appData.name}
+                    onChange={(e) => setAppData({ ...appData, name: e.target.value })}
+                />
+                {errors.name && <span className="text-red-500 text-sm">{errors.name}</span>}
+            </label>
+
+            {/* App Summary */}
+            <label className="block flex flex-col">
+                <span className="text-sm font-medium text-gray-700 mb-2">Summary</span>
+                <input
+                    className={`border ${errors.summary ? 'border-red-500' : 'border-gray-300'} rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                    type="text"
+                    placeholder="App Summary"
+                    value={appData.summary}
+                    onChange={(e) => setAppData({ ...appData, summary: e.target.value })}
+                />
+                {errors.summary && <span className="text-red-500 text-sm">{errors.summary}</span>}
+            </label>
+
+            {/* Color Picker for Summary Color */}
+            <label className="block flex flex-col">
+                <span className="text-sm font-medium text-gray-700 mb-2">Summary Color</span>
+                <input
+                    type="color"
+                    value={appData.summaryClr}
+                    onChange={(e) => setAppData({ ...appData, summaryClr: e.target.value })}
+                    className="h-10 w-full rounded-lg"
+                />
+            </label>
+
+            {/* Official Website */}
+            <label className="block flex flex-col">
+                <span className="text-sm font-medium text-gray-700 mb-2">Official Website</span>
+                <input
+                    className={`border ${errors.officialWebsite ? 'border-red-500' : 'border-gray-300'} rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                    type="text"
+                    placeholder="Official Website"
+                    value={appData.officialWebsite}
+                    onChange={(e) => setAppData({ ...appData, officialWebsite: e.target.value })}
+                />
+                {errors.officialWebsite && <span className="text-red-500 text-sm">{errors.officialWebsite}</span>}
+            </label>
+
+            {/* Developer ID Dropdown with Search */}
+            <label className="block flex flex-col">
+                <span className="text-sm font-medium text-gray-700 mb-2">Developer</span>
+                <div className="relative">
                     <input
-                        className="border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className={`border ${errors.developerId ? 'border-red-500' : 'border-gray-300'} rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                         type="text"
-                        placeholder="App Name"
-                        value={appData.name}
-                        onChange={(e) => setAppData({ ...appData, name: e.target.value })}
+                        placeholder="Search Developer"
+                        value={!appData?.developerId ? developerSearchTerm : developerOptions.find((developer) => developer.id === appData?.developerId)?.name}
+                        onChange={handleSearchChange}
                     />
-                </label>
+                    {isDropdownOpen && developerOptions.length > 0 && (
+                        <ul className="absolute z-10 w-full bg-white border border-gray-300 mt-2 max-h-40 overflow-y-auto shadow-lg rounded-lg">
+                            {developerOptions.map((developer) => (
+                                <li
+                                    key={developer.id}
+                                    className="p-2 hover:bg-gray-100 cursor-pointer"
+                                    onClick={() => handleSelectDeveloper(developer.id)}
+                                >
+                                    {developer.name}
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+            </label>
 
-                {/* App Summary */}
-                <label className="block flex flex-col">
-                    <span className="text-sm font-medium text-gray-700 mb-2">Summary</span>
-                    <input
-                        className="border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        type="text"
-                        placeholder="App Summary"
-                        value={appData.summary}
-                        onChange={(e) => setAppData({ ...appData, summary: e.target.value })}
-                    />
-                </label>
+            {/* App Description */}
+            <label className="block flex flex-col col-span-2">
+                <span className="text-sm font-medium text-gray-700 mb-2">App Description</span>
+                <textarea
+                    className={`border ${errors.description ? 'border-red-500' : 'border-gray-300'} rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                    placeholder="App Description"
+                    value={appData.description}
+                    onChange={(e) => setAppData({ ...appData, description: e.target.value })}
+                />
+                {errors.description && <span className="text-red-500 text-sm">{errors.description}</span>}
+            </label>
 
-                {/* Color Picker for Summary Color */}
-                <label className="block flex flex-col">
-                    <span className="text-sm font-medium text-gray-700 mb-2">Summary Color</span>
-                    <input
-                        type="color"
-                        value={appData.summaryClr}
-                        onChange={(e) => setAppData({ ...appData, summaryClr: e.target.value })}
-                        className="h-10 w-full rounded-lg"
-                    />
-                </label>
+            {/* App Version */}
+            <label className="block flex flex-col">
+                <span className="text-sm font-medium text-gray-700 mb-2">App Version</span>
+                <input
+                    className={`border ${errors.version ? 'border-red-500' : 'border-gray-300'} rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                    type="text"
+                    placeholder="App Version"
+                    value={appData.version}
+                    onChange={(e) => setAppData({ ...appData, version: e.target.value })}
+                />
+                {errors.version && <span className="text-red-500 text-sm">{errors.version}</span>}
+            </label>
 
-                {/* Official Website */}
-                <label className="block flex flex-col">
-                    <span className="text-sm font-medium text-gray-700 mb-2">Official Website</span>
-                    <input
-                        className="border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        type="text"
-                        placeholder="Official Website"
-                        value={appData.officialWebsite}
-                        onChange={(e) => setAppData({ ...appData, officialWebsite: e.target.value })}
-                    />
-                </label>
+            {/* Version Update */}
+            <label className="block flex flex-col">
+                <span className="text-sm font-medium text-gray-700 mb-2">Version Update</span>
+                <input
+                    className={`border ${errors.versionUpdate ? 'border-red-500' : 'border-gray-300'} rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                    type="text"
+                    placeholder="Version Update Info"
+                    value={appData.versionUpdate}
+                    onChange={(e) => setAppData({ ...appData, versionUpdate: e.target.value })}
+                />
+                {errors.versionUpdate && <span className="text-red-500 text-sm">{errors.versionUpdate}</span>}
+            </label>
 
-                {/* Developer ID Dropdown with Search */}
-                <label className="block flex flex-col">
-                    <span className="text-sm font-medium text-gray-700 mb-2">Developer</span>
-                    <div className="relative">
-                        <input
-                            className="border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            type="text"
-                            placeholder="Search Developer"
-                            value={!appData?.developerId ? developerSearchTerm : developerOptions.find((developer) => { return developer.id === appData?.developerId })['name']}
-                            onChange={handleSearchChange}
-                        />
-                        {isDropdownOpen && developerOptions.length > 0 && (
-                            <ul className="absolute z-10 w-full bg-white border border-gray-300 mt-2 max-h-40 overflow-y-auto shadow-lg rounded-lg">
-                                {developerOptions.map((developer) => (
-                                    <li
-                                        key={developer.id}
-                                        className="p-2 hover:bg-gray-100 cursor-pointer"
-                                        onClick={() => handleSelectDeveloper(developer.id)}
-                                    >
-                                        {developer.name}
-                                    </li>
-                                ))}
-                            </ul>
+            {/* App Size */}
+            <label className="block flex flex-col">
+                <span className="text-sm font-medium text-gray-700 mb-2">App Size</span>
+                <input
+                    className={`border ${errors.size ? 'border-red-500' : 'border-gray-300'} rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                    type="text"
+                    placeholder="App Size"
+                    value={appData.size}
+                    onChange={(e) => setAppData({ ...appData, size: e.target.value })}
+                />
+                {errors.size && <span className="text-red-500 text-sm">{errors.size}</span>}
+            </label>
+        </div>
+
+        {/* Status */}
+        <label className="block mb-4">
+            <span className="text-sm font-medium text-gray-700 mb-2">Appear in Section</span>
+        </label>
+        <div className="grid grid-cols-4 gap-4">
+            {sectionArray.map((sectionObj) => {
+                const isSelected = appData?.status?.some((s) => s.num === sectionObj.id);
+                return (
+                    <div
+                        key={sectionObj.id}
+                        className={`border p-4 rounded-lg font-semibold text-sm`}
+                        onClick={(e) => {
+                            if (e.target.tagName !== 'BUTTON' && e.target.type !== 'checkbox') {
+                                handleSectionSelect(sectionObj.id, sectionObj.promoteAvailable);
+                            }
+                        }}
+                    >
+                        <h3>{sectionObj.sectionName}</h3>
+                        <button
+                            type="button"
+                            className={`bg-blue-500 text-white rounded w-full clickable ${isSelected ? "bg-green-500" : "bg-red-500"}`}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleSectionSelect(sectionObj.id, sectionObj.promoteAvailable);
+                            }}
+                        >
+                            {isSelected ? "Present" : "Absent"}
+                        </button>
+                        {sectionObj.promoteAvailable && isSelected && (
+                            <div className="mt-2 flex items-center">
+                                <label className="flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        checked={appData?.status.find((s) => s.num === sectionObj.id)?.promote}
+                                        onChange={(e) => {
+                                            e.stopPropagation();
+                                            handlePromoteChange(sectionObj.id);
+                                        }}
+                                    />
+                                    <span className="ml-2 text-sm">Promote</span>
+                                </label>
+                            </div>
                         )}
                     </div>
-                </label>
+                );
+            })}
+        </div>
 
-                {/* App Description */}
-                <label className="block flex flex-col col-span-2">
-                    <span className="text-sm font-medium text-gray-700 mb-2">App Description</span>
-                    <textarea
-                        className="border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        placeholder="App Description"
-                        value={appData.description}
-                        onChange={(e) => setAppData({ ...appData, description: e.target.value })}
-                    />
-                </label>
-
-                {/* App Version */}
-                <label className="block flex flex-col">
-                    <span className="text-sm font-medium text-gray-700 mb-2">App Version</span>
-                    <input
-                        className="border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        type="text"
-                        placeholder="App Version"
-                        value={appData.version}
-                        onChange={(e) => setAppData({ ...appData, version: e.target.value })}
-                    />
-                </label>
-
-                {/* Version Update */}
-                <label className="block flex flex-col">
-                    <span className="text-sm font-medium text-gray-700 mb-2">Version Update</span>
-                    <input
-                        className="border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        type="text"
-                        placeholder="Version Update Info"
-                        value={appData.versionUpdate}
-                        onChange={(e) => setAppData({ ...appData, versionUpdate: e.target.value })}
-                    />
-                </label>
-
-                {/* App Size */}
-                <label className="block flex flex-col">
-                    <span className="text-sm font-medium text-gray-700 mb-2">App Size</span>
-                    <input
-                        className="border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        type="text"
-                        placeholder="App Size"
-                        value={appData.size}
-                        onChange={(e) => setAppData({ ...appData, size: e.target.value })}
-                    />
-                </label>
-            </div>
-
-            {/* Status */}
-            <label className="block mb-4">
-                <span className="text-sm font-medium text-gray-700 mb-2">Appear in Section</span>
+        {/* Promote and Suggest Checkboxes */}
+        <div className="mb-6 flex items-center">
+            <label className="inline-flex items-center">
+                <input
+                    type="checkbox"
+                    checked={appData.suggest}
+                    onChange={(e) => setAppData({ ...appData, suggest: e.target.checked })}
+                    className="rounded focus:ring-2 focus:ring-indigo-500"
+                />
+                <span className="ml-2 text-sm">Appear as a suggested app?</span>
             </label>
-                <div className="grid grid-cols-4 gap-4">
-                    {sectionArray.map((sectionObj) => {
-                        const isSelected = appData?.status?.some((s) => s.num === sectionObj.id);
-                        return (
-                            <div
-                                key={sectionObj.id}
-                                className={`border p-4 rounded-lg font-semibold text-sm`}
-                                onClick={(e) => {
-                                    // Check if the click is not from a button or checkbox
-                                    if (e.target.tagName !== 'BUTTON' && e.target.type !== 'checkbox') {
-                                       
-                                        handleSectionSelect(sectionObj.id, sectionObj.promoteAvailable); // Only call if clicking directly on the div
-                                    }
-                                }}
-                            >
-                                <h3>{sectionObj.sectionName}</h3>
+        </div>
 
-                                {/* Button to select the section */}
-                                <button
-                                    type="button" 
-                                    className={`bg-blue-500 text-white rounded w-full clickable ${isSelected ? "bg-green-500" : "bg-red-500"}`}
-                                    onClick={(e) => {
-                                        e.stopPropagation(); // Prevent event bubbling
-                                        handleSectionSelect(sectionObj.id, sectionObj.promoteAvailable); // Handles section selection
-                                    }}
-                                >
-                                    {isSelected ? "Present" : "Absent"}
-                                </button>
-
-                                {/* Only show promote checkbox when the section is selected and promote is available */}
-                                {sectionObj.promoteAvailable && isSelected && (
-                                    <div className="mt-2 flex items-center">
-                                        <label className="flex items-center">
-                                            <input
-                                                type="checkbox"
-                                                checked={appData?.status.find((s) => s.num === sectionObj.id)?.promote}
-                                                onChange={(e) => {
-                                                    e.stopPropagation(); // Prevent card selection toggle on checkbox change
-                                                    handlePromoteChange(sectionObj.id); // Handles promote toggle
-                                                }} // Handles promote toggle
-                                            />
-                                            <span className="ml-2 text-sm">Promote</span>
-                                        </label>
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
-
-
-            {/* Promote and Suggest Checkboxes */}
-            <div className="mb-6 flex items-center">
-                <label className="inline-flex items-center">
-                    <input
-                        type="checkbox"
-                        checked={appData.suggest}
-                        onChange={(e) => setAppData({ ...appData, suggest: e.target.checked })}
-                        className="rounded focus:ring-2 focus:ring-indigo-500"
-                    />
-                    <span className="ml-2 text-sm">Appear as a suggested app?</span>
-                </label>
-            </div>
-
-            {/* File Upload Buttons */}
-            <div className="mb-6 flex space-x-4">
-                <button
-                    type="button"
-                    onClick={() => { setFileType('icon'); setFileModalOpen(true); }}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                >
-                    Upload Icon
-                </button>
-                <button
-                    type="button"
-                    onClick={() => { setFileType('images'); setFileModalOpen(true); }}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                >
-                    Upload Images
-                </button>
-                <button
-                    type="button"
-                    onClick={() => { setFileType('bannerImg'); setFileModalOpen(true); }}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                >
-                    Upload Banner Image
-                </button>
-            </div>
-            {/* Modal for File Upload */}
-            {isFileModalOpen && (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
-                    <div className="bg-white p-6 rounded-md">
-                        <h2 className="text-xl font-bold mb-4">{`${(fileType === 'icon' && appData.icon) || (fileType === 'bannerImg' && appData.bannerImg) ? "Replace" : "Upload"} ${fileType.toUpperCase()}`}</h2>
-                        <input
-                            type="file"
-                            onChange={handleFileChange}
-                            multiple={fileType === 'images'}  // Allow multiple file selection for images
-                        />
-
-                        {/* Display uploaded images */}
-                        {/* {fileType === 'images' && appData.images.length > 0 && ( */}
-                        <div className="mt-4">
-                            <h3 className="font-semibold mb-2">Uploaded Images:</h3>
-                            <div className="grid grid-cols-4 gap-3">
-                                {fileType === 'images' && appData.images.length > 0 &&
-                                    appData.images.map((image, index) => (
-                                        <div key={index} className="relative">
-                                            <div className={"border-[0.15rem] border-solid border-slate-400 p-[0.25rem]"}>
-                                                <img
-                                                    src={URL.createObjectURL(image)}
-                                                    alt={`uploaded-${index}`}
-                                                    className="w-full h-24 object-cover"
-                                                />
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => removeImage(index)}
-                                                className="absolute top-[-0.5rem] right-[-0.5rem] bg-slate-600 text-white px-[0.35rem] pb-[0.05rem] text-[0.75rem] rounded-full"
-                                            >
-                                                x
-                                            </button>
-                                        </div>
-                                    ))
-                                }
-                                {
-                                    (fileType === 'bannerImg') && appData.bannerImg && (
-                                        <div className="relative">
-                                            <div className={"border-[0.15rem] border-solid border-slate-400 p-[0.25rem]"}>
-                                                <img
-                                                    src={URL.createObjectURL(appData[`${fileType}`])}
-                                                    alt={`uploaded-${fileType}`}
-                                                    className="w-full h-24 object-cover"
-                                                />
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => removeImage()}
-                                                className="absolute top-[-0.5rem] right-[-0.5rem] bg-slate-600 text-white px-[0.35rem] pb-[0.05rem] text-[0.75rem] rounded-full"
-                                            >
-                                                x
-                                            </button>
-                                        </div>
-                                    )
-                                }
-
-                                {
-                                    (fileType === 'icon') && appData.icon && (
-                                        <div className="relative">
-                                            <div className={"border-[0.15rem] border-solid border-slate-400 p-[0.25rem]"}>
-                                                <img
-                                                    src={URL.createObjectURL(appData[`${fileType}`])}
-                                                    alt={`uploaded-${fileType}`}
-                                                    className="w-full h-24 object-cover"
-                                                />
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => removeImage()}
-                                                className="absolute top-[-0.5rem] right-[-0.5rem] bg-slate-600 text-white px-[0.35rem] pb-[0.05rem] text-[0.75rem] rounded-full"
-                                            >
-                                                x
-                                            </button>
-                                        </div>
-                                    )
-                                }
-
-                            </div>
-                        </div>
-                        {/* )} */}
-
-                        <button onClick={() => setFileModalOpen(false)} className="bg-slate-600 text-white px-4 py-2 mt-4 rounded-md">Close</button>
-                    </div>
-                </div>
-            )}
-            {
-                isConfirmationModalOpen && (
-                    <div className="fixed inset-0 text-white bg-opacity-50 flex items-center justify-center">
-                        <div className="bg-[#353f4d] p-6 rounded-md flex flex-col justify-center items-center">
-                            <span> {`Successfully ${updateApp ? "updated the " : "created a new"} app !`} </span>
-                            <button onClick={() => setIsConfirmationModalOpen(false)} className="bg-slate-600 text-white px-4 py-2 mt-4 rounded-md">Close</button>
-                        </div>
-
-                    </div>
-                )
-            }
-
-            {/* Submit Button */}
-            <button type="submit" className={`bg-green-500 text-white p-2 rounded ${posting && "disabled bg-red-500"}`}>
-                {posting ? "Posting..." : (updateApp ? 'Update App' : 'Create App')}
+        {/* File Upload Buttons */}
+        <div className="mb-6 flex space-x-4">
+            <button
+                type="button"
+                onClick={() => { setFileType('icon'); setFileModalOpen(true); }}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            >
+                Upload Icon
             </button>
-        </form>
+            <button
+                type="button"
+                onClick={() => { setFileType('images'); setFileModalOpen(true); }}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            >
+                Upload Images
+            </button>
+            <button
+                type="button"
+                onClick={() => { setFileType('bannerImg'); setFileModalOpen(true); }}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            >
+                Upload Banner Image
+            </button>
+        </div>
+
+        {/* Modal for File Upload */}
+        {isFileModalOpen && (
+            <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
+                <div className="bg-white p-6 rounded-md">
+                    <h2 className="text-xl font-bold mb-4">{`${(fileType === 'icon' && appData.icon) || (fileType === 'bannerImg' && appData.bannerImg) ? "Replace" : "Upload"} ${fileType.toUpperCase()}`}</h2>
+                    <input
+                        type="file"
+                        onChange={handleFileChange}
+                        multiple={fileType === 'images'}
+                    />
+                    <div className="mt-4">
+                        <h3 className="font-semibold mb-2">Uploaded Images:</h3>
+                        <div className="grid grid-cols-4 gap-3">
+                            {fileType === 'images' && appData.images.length > 0 &&
+                                appData.images.map((image, index) => (
+                                    <div key={index} className="relative">
+                                        <div className={"border-[0.15rem] border-solid border-slate-400 p-[0.25rem]"}>
+                                            <img
+                                                src={URL.createObjectURL(image)}
+                                                alt={`uploaded-${index}`}
+                                                className="w-full h-24 object-cover"
+                                            />
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => removeImage(index)}
+                                            className="absolute top-[-0.5rem] right-[-0.5rem] bg-slate-600 text-white px-[0.35rem] pb-[0.05rem] text-[0.75rem] rounded-full"
+                                        >
+                                            x
+                                        </button>
+                                    </div>
+                                ))
+                            }
+                            {(fileType === 'bannerImg' && appData.bannerImg) && (
+                                <div className="relative">
+                                    <div className={"border-[0.15rem] border-solid border-slate-400 p-[0.25rem]"}>
+                                        <img
+                                            src={URL.createObjectURL(appData[`${fileType}`])}
+                                            alt={`uploaded-${fileType}`}
+                                            className="w-full h-24 object-cover"
+                                        />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => removeImage()}
+                                        className="absolute top-[-0.5rem] right-[-0.5rem] bg-slate-600 text-white px-[0.35rem] pb-[0.05rem] text-[0.75rem] rounded-full"
+                                    >
+                                        x
+                                    </button>
+                                </div>
+                            )}
+                            {(fileType === 'icon' && appData.icon) && (
+                                <div className="relative">
+                                    <div className={"border-[0.15rem] border-solid border-slate-400 p-[0.25rem]"}>
+                                        <img
+                                            src={URL.createObjectURL(appData[`${fileType}`])}
+                                            alt={`uploaded-${fileType}`}
+                                            className="w-full h-24 object-cover"
+                                        />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => removeImage()}
+                                        className="absolute top-[-0.5rem] right-[-0.5rem] bg-slate-600 text-white px-[0.35rem] pb-[0.05rem] text-[0.75rem] rounded-full"
+                                    >
+                                        x
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <button onClick={() => setFileModalOpen(false)} className="bg-slate-600 text-white px-4 py-2 mt-4 rounded-md">Close</button>
+                </div>
+            </div>
+        )}
+        {isConfirmationModalOpen && (
+            <div className="fixed inset-0 text-white bg-opacity-50 flex items-center justify-center">
+                <div className="bg-[#353f4d] p-6 rounded-md flex flex-col justify-center items-center">
+                    <span>{`Successfully ${updateApp ? "updated the " : "created a new"} app!`}</span>
+                    <button onClick={() => setIsConfirmationModalOpen(false)} className="bg-slate-600 text-white px-4 py-2 mt-4 rounded-md">Close</button>
+                </div>
+            </div>
+        )}
+
+        {/* Submit Button */}
+        <button type="submit" className={`bg-green-500 text-white p-2 rounded ${posting && "disabled bg-red-500"}`}>
+            {posting ? "Posting..." : (updateApp ? 'Update App' : 'Create App')}
+        </button>
+    </form>
     );
 }
