@@ -7,7 +7,7 @@ const page = async ({ searchParams }) => {
     const response = await fetchDeveloper(developerId);
   
     return (
-        <CreateUpdateDeveloper initialDeveloperData={response.data.result.rows[0]} updateDeveloper={true}></CreateUpdateDeveloper>
+        <CreateUpdateDeveloper initialDeveloperData={response.data.result.rows[0]} isUpdateDeveloper={true}></CreateUpdateDeveloper>
     )
 }
 

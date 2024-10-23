@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from 'react';
-import { fetchDevelopers, deleteApp } from '@/app/actions';
+import { fetchDevelopers, deleteApp, deleteDeveloper } from '@/app/actions';
 import { useRouter } from 'next/navigation';
 
 export default function ViewDeveloper() {
@@ -11,6 +11,8 @@ export default function ViewDeveloper() {
   const [searchDate, setSearchDate] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const [removeDeveloperId, setRemoveDeveloperId]= useState(null);
+  const [confirmRemoveDeveloper,setConfirmRemoveDeveloper]= useState(false);
 
   useEffect(() => {
     const loadDevelopers = async () => {
@@ -39,10 +41,18 @@ export default function ViewDeveloper() {
   };
 
   const handleRemove = async (developerId) => {
-    // Handle developer removal
+    setConfirmRemoveDeveloper(true);
+    setRemoveDeveloperId(developerId);
   };
 
+  const handleRemoveDeveloperConfirmation= async ()=>{
+    deleteDeveloper(removeDeveloperId);
+    setRemoveDeveloperId(null);
+    window.location.reload();
+  }
+
   return (
+    <>
     <div className="text-black">
       <h1 className="text-2xl font-bold mb-4">View Developers</h1>
 
@@ -135,5 +145,17 @@ export default function ViewDeveloper() {
         )}
       </div>
     </div>
+    {confirmRemoveDeveloper && (
+                <div className="fixed inset-0 text-white bg-opacity-50 flex items-center justify-center">
+                    <div className="bg-[#353f4d] p-6 rounded-md flex flex-col justify-center items-center">
+                        {<span>{`Are you sure you want to remove developer?`}</span>}
+                        <div className='flex justify-around w-[100%]'>
+                        <button onClick={() => { handleRemoveDeveloperConfirmation(); setConfirmRemoveDeveloper(false); }} className="bg-green-500 text-white px-4 py-2 mt-4 rounded-md">Yes</button>
+                        <button onClick={() => { setConfirmRemoveDeveloper(false); }} className="bg-red-500 text-white px-4 py-2 mt-4 rounded-md">No</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+    </>
   );
 }

@@ -64,6 +64,7 @@ export const deleteApp = async (appId) => {
   // const params= new URLSearchParams({
   //   appId
   // })
+
   return await axios.delete(`${API_URL}/app`, {
     params: { appId },
     auth: {
@@ -71,12 +72,6 @@ export const deleteApp = async (appId) => {
       password,
     },
   });
-
-  // if (!response.ok) {
-  //   throw new Error('Failed to delete app');
-  // }
-
-  // return response.json(); // Or handle response as needed
 };
 
 export const uploadImage = async (formData) => {
@@ -121,7 +116,16 @@ export const fetchDeveloper = async (developerId) => {
 
 export const updateDeveloper = async (developerDetails) => {
   return await axios.patch(`${API_URL}/developer`, developerDetails, {
-    params: { page, limit },
+    auth: {
+      username,
+      password,
+    }
+  });
+};
+
+export const deleteDeveloper = async (developerId) => {
+  return await axios.delete(`${API_URL}/developer`, {
+    params: { developerId },
     auth: {
       username,
       password,
