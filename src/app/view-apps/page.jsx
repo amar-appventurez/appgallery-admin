@@ -17,6 +17,7 @@ export default function ViewApps() {
   const [disablePromote, setDisablePromote] = useState(true);
   const [removeAppId, setRemoveAppId] = useState(null);
   const [confirmRemoveApp, setConfirmRemoveApp] = useState(false);
+  const [showRemovalConfirmationModal, setShowRemovalConfirmationModal] = useState(false);
 
   useEffect(() => {
     const loadApps = async () => {
@@ -51,11 +52,12 @@ export default function ViewApps() {
   };
 
   const handleRemoveAppConfirmation = async () => {
-   
+
     try {
       const response = await deleteApp(removeAppId);
+      setShowRemovalConfirmationModal(true);
+      setApps((previousApp) => (previousApp.filter((app) => (app.id != removeAppId))))
       setRemoveAppId(null);
-      window.location.reload();
     }
     catch (err) {
       console.error('Failed to delete app', err);
@@ -177,7 +179,7 @@ export default function ViewApps() {
                   View Details
                 </button> */}
                       <button
-                        className="bg-blue-500 text-white px-4 py-[0.1rem] rounded-lg"
+                        className="bg-yellow-500 text-white px-4 py-[0.1rem] rounded-lg"
                         onClick={() => handleUpdate(app.id)}
                       >
                         Update Details
@@ -244,6 +246,17 @@ export default function ViewApps() {
             <div className='flex justify-around w-[100%]'>
               <button onClick={() => { handleRemoveAppConfirmation(); setConfirmRemoveApp(false); }} className="bg-green-500 text-white px-4 py-2 mt-4 rounded-md">Yes</button>
               <button onClick={() => { setConfirmRemoveApp(false); }} className="bg-red-500 text-white px-4 py-2 mt-4 rounded-md">No</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRemovalConfirmationModal && (
+        <div className="fixed inset-0 text-white bg-opacity-50 flex items-center justify-center">
+          <div className="bg-[#353f4d] p-6 rounded-md flex flex-col justify-center items-center">
+            {<span>{`App removed successfully !`}</span>}
+            <div className='flex justify-around w-[100%]'>
+              <button onClick={() => { setShowRemovalConfirmationModal(false); }} className="bg-slate-500 text-white px-4 py-2 mt-4 rounded-md">Close</button>
             </div>
           </div>
         </div>
