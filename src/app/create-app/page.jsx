@@ -195,10 +195,22 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData = nu
         const errors = {};
         requiredFields.forEach(field => {
             const value = appData[field];
-            if (value === '' || (field === 'developerId' && value === null)) {
+            if (value === '' || (field === 'developerId' && value === null) ) {
                 errors[field] = `${field.charAt(0).toUpperCase() + field.slice(1)} is required.`;
             }
         });
+
+        if (!appData.icon) {
+            errors.icon = 'Icon file is required.';
+        }
+    
+        if (!appData.bannerImg) {
+            errors.bannerImg = 'Banner image is required.';
+        }
+    
+        if (!appData.images || appData.images.length === 0) {
+            errors.images = 'At least one image is required.';
+        }
     
         if (Object.keys(errors).length > 0) {
             setErrors(errors);
@@ -528,6 +540,7 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData = nu
             >
                 Upload Icon
             </button>
+            {errors.icon && <span className="text-red-500 text-sm">{errors.icon}</span>}
             <button
                 type="button"
                 onClick={() => { setFileType('images'); setFileModalOpen(true); }}
@@ -535,6 +548,7 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData = nu
             >
                 Upload Images
             </button>
+            {errors.images && <span className="text-red-500 text-sm">{errors.images}</span>}
             <button
                 type="button"
                 onClick={() => { setFileType('bannerImg'); setFileModalOpen(true); }}
@@ -542,6 +556,7 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData = nu
             >
                 Upload Banner Image
             </button>
+            {errors.bannerImg && <span className="text-red-500 text-sm">{errors.bannerImg}</span>}
         </div>
 
         {/* Modal for File Upload */}
