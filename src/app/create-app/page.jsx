@@ -390,11 +390,11 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData = nu
 
                 {/* App Summary */}
                 <label className="block flex flex-col">
-                    <span className="text-sm font-medium text-gray-700 mb-2">Summary</span>
+                    <span className="text-sm font-medium text-gray-700 mb-2">Subtitle</span>
                     <input
                         className={`border ${errors.summary ? 'border-red-500' : 'border-gray-300'} rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                         type="text"
-                        placeholder="App Summary"
+                        placeholder="App Subtitle"
                         value={appData.summary}
                         onChange={(e) => setAppData({ ...appData, summary: e.target.value })}
                     />
@@ -403,7 +403,7 @@ export default function CreateUpdateApp({ updateApp = false, initialAppData = nu
 
                 {/* Color Picker for Summary Color */}
                 <label className="block flex flex-col">
-                    <span className="text-sm font-medium text-gray-700 mb-2">Summary Color</span>
+                    <span className="text-sm font-medium text-gray-700 mb-2">Subtitle Color</span>
                     <input
                         type="color"
                         value={appData.summaryClr}
